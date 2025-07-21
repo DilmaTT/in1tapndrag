@@ -27,7 +27,8 @@ interface ActionButton {
 
 interface PokerMatrixProps {
   selectedHands: Record<string, string>;
-  onHandSelect: (hand: string) => void;
+  // Обновленная сигнатура: теперь передает предполагаемый режим ('select' или 'deselect')
+  onHandSelect: (hand: string, mode: 'select' | 'deselect') => void;
   activeAction: string;
   actionButtons: ActionButton[];
   readOnly?: boolean;
@@ -35,11 +36,14 @@ interface PokerMatrixProps {
 
 export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionButtons, readOnly = false }: PokerMatrixProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  // Новое состояние для хранения режима перетаскивания (выбрать или отменить выбор)
+  const [dragMode, setDragMode] = useState<'select' | 'deselect' | null>(null);
 
-  // Add global mouseup listener to stop dragging even if mouse leaves the matrix
+  // Добавляем глобальный слушатель mouseup, чтобы остановить перетаскивание, даже если мышь покидает матрицу
   useEffect(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
+      setDragMode(null); // Сбрасываем режим перетаскивания при отпускании кнопки мыши
     };
 
     window.addEventListener('mouseup', handleMouseUp);
@@ -52,13 +56,26 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
   const handleMouseDown = (hand: string) => {
     if (readOnly) return;
     setIsDragging(true);
-    onHandSelect(hand); // Select the hand on click/start of drag
+
+    // Определяем режим перетаскивания на основе начального состояния руки
+    const currentHandAction = selectedHands[hand];
+    let mode: 'select' | 'deselect';
+
+    // Если рука в данный момент выбрана с активным действием, режим — 'deselect'.
+    // В противном случае (это 'fold', undefined или другое действие), режим — 'select'.
+    if (currentHandAction === activeAction) {
+      mode = 'deselect';
+    } else {
+      mode = 'select';
+    }
+    setDragMode(mode); // Устанавливаем определенный режим
+    onHandSelect(hand, mode); // Применяем действие к начальной руке
   };
 
   const handleMouseEnter = (hand: string) => {
     if (readOnly) return;
-    if (isDragging) {
-      onHandSelect(hand); // Select the hand if dragging
+    if (isDragging && dragMode) { // Применяем только при перетаскивании и установленном режиме
+      onHandSelect(hand, dragMode); // Применяем действие на основе определенного режима
     }
   };
 

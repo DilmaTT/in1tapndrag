@@ -18,7 +18,10 @@ export const Navigation = ({ activeSection, onSectionChange, isMobile = false, m
 
   const content = (
     <>
-      <div className="flex items-center gap-1"> {/* Wrap buttons in a div for consistent spacing */}
+      <div className={cn(
+        "flex items-center",
+        isMobile ? "gap-0" : "gap-1" // Уменьшаем gap до 0 для мобильного режима
+      )}>
         {sections.map((section) => (
           <Button
             key={section.id}
@@ -27,8 +30,8 @@ export const Navigation = ({ activeSection, onSectionChange, isMobile = false, m
             onClick={() => onSectionChange(section.id)}
             className={cn(
               "transition-all duration-200",
-              activeSection === section.id && "shadow-md",
-              isMobile && "h-10" // Уменьшаем высоту для мобильного режима
+              activeSection === section.id && "shadow-md"
+              // Удаляем h-10 для мобильного режима, чтобы высота определялась size="sm"
             )}
           >
             {section.label}

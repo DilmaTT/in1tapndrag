@@ -430,15 +430,18 @@ export const RangeEditor = ({ isMobileMode = false }: RangeEditorProps) => {
     }
   };
 
-  const onHandSelect = (hand: string) => {
+  const onHandSelect = (hand: string, mode: 'select' | 'deselect') => {
     const { range: currentRange } = getCurrentRangeAndFolder();
     if (!currentRange) return;
 
     const newHands = { ...currentRange.hands };
-    if (newHands[hand] === activeAction) {
-      delete newHands[hand];
-    } else {
+    if (mode === 'select') {
       newHands[hand] = activeAction;
+    } else { // mode === 'deselect'
+      // Только удаляем, если текущее действие совпадает с активным
+      if (newHands[hand] === activeAction) {
+        delete newHands[hand];
+      }
     }
 
     setFolders(prev => prev.map(folder => ({
@@ -583,8 +586,8 @@ export const RangeEditor = ({ isMobileMode = false }: RangeEditorProps) => {
     )}>
       {/* Sidebar */}
       <div className={cn(
-        "bg-card p-4 space-y-4",
-        isMobileMode ? "order-2 flex flex-col" : "w-80 border-r flex flex-col"
+        "bg-card space-y-4",
+        isMobileMode ? "order-2 flex flex-col p-3" : "w-80 border-r flex flex-col p-4" // Adjusted padding for mobile
       )}>
         {/* Folder section */}
         <div className={cn(
@@ -694,8 +697,7 @@ export const RangeEditor = ({ isMobileMode = false }: RangeEditorProps) => {
 
       {/* Main Content */}
       <div className={cn(
-        "p-6",
-        isMobileMode ? "order-1 flex-1" : "flex-1"
+        isMobileMode ? "order-1 flex-1 p-4" : "flex-1 p-6" // Adjusted padding for mobile
       )}>
         <div className={cn(
           "mx-auto space-y-6",
