@@ -27,7 +27,6 @@ interface ActionButton {
 
 interface PokerMatrixProps {
   selectedHands: Record<string, string>;
-  // Обновленная сигнатура: теперь передает предполагаемый режим ('select' или 'deselect')
   onHandSelect: (hand: string, mode: 'select' | 'deselect') => void;
   activeAction: string;
   actionButtons: ActionButton[];
@@ -36,46 +35,58 @@ interface PokerMatrixProps {
 
 export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionButtons, readOnly = false }: PokerMatrixProps) => {
   const [isDragging, setIsDragging] = useState(false);
-  // Новое состояние для хранения режима перетаскивания (выбрать или отменить выбор)
   const [dragMode, setDragMode] = useState<'select' | 'deselect' | null>(null);
+  const lastHandEnteredRef = useRef<string | null>(null);
 
-  // Добавляем глобальный слушатель mouseup, чтобы остановить перетаскивание, даже если мышь покидает матрицу
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDragMode(null);
+    lastHandEnteredRef.current = null;
+  };
+
   useEffect(() => {
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setDragMode(null); // Сбрасываем режим перетаскивания при отпускании кнопки мыши
-    };
-
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('touchend', handleDragEnd);
+    window.addEventListener('touchcancel', handleDragEnd);
 
     return () => {
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchend', handleDragEnd);
+      window.removeEventListener('touchcancel', handleDragEnd);
     };
   }, []);
 
   const handleMouseDown = (hand: string) => {
     if (readOnly) return;
     setIsDragging(true);
+    lastHandEnteredRef.current = hand;
 
-    // Определяем режим перетаскивания на основе начального состояния руки
     const currentHandAction = selectedHands[hand];
-    let mode: 'select' | 'deselect';
-
-    // Если рука в данный момент выбрана с активным действием, режим — 'deselect'.
-    // В противном случае (это 'fold', undefined или другое действие), режим — 'select'.
-    if (currentHandAction === activeAction) {
-      mode = 'deselect';
-    } else {
-      mode = 'select';
-    }
-    setDragMode(mode); // Устанавливаем определенный режим
-    onHandSelect(hand, mode); // Применяем действие к начальной руке
+    const mode = currentHandAction === activeAction ? 'deselect' : 'select';
+    
+    setDragMode(mode);
+    onHandSelect(hand, mode);
   };
 
   const handleMouseEnter = (hand: string) => {
-    if (readOnly) return;
-    if (isDragging && dragMode) { // Применяем только при перетаскивании и установленном режиме
-      onHandSelect(hand, dragMode); // Применяем действие на основе определенного режима
+    if (readOnly || !isDragging || !dragMode) return;
+    
+    if (lastHandEnteredRef.current !== hand) {
+      onHandSelect(hand, dragMode);
+      lastHandEnteredRef.current = hand;
+    }
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    event.preventDefault();
+
+    const touch = event.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+    if (element instanceof HTMLElement && element.dataset.hand) {
+      const hand = element.dataset.hand;
+      handleMouseEnter(hand);
     }
   };
 
@@ -98,23 +109,30 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
   return (
     <div className="space-y-4">
       <div
-        className="grid grid-cols-13 gap-1 bg-card p-2 sm:p-4 rounded-lg border relative aspect-square w-full lg:w-[63%] select-none" // Added select-none for better UX
+        className="grid grid-cols-13 gap-0.5 sm:gap-1 bg-card p-2 sm:p-4 rounded-lg border relative aspect-square w-full select-none"
+        onTouchMove={handleTouchMove}
       >
         {HANDS.map((row, rowIndex) => 
           row.map((hand, colIndex) => (
             <Button
               key={`${rowIndex}-${colIndex}`}
+              data-hand={hand}
               variant="outline"
               size="sm"
               className={cn(
                 "w-full h-full aspect-square p-0 font-mono border transition-all duration-200",
-                "text-[clamp(0.625rem,1.5vw,0.875rem)]", // Smoothly scales font from 10px to 14px based on viewport width
+                "text-[clamp(0.625rem,1.5vw,0.875rem)]",
                 getHandColor(hand),
-                "hover:ring-2 hover:ring-ring"
+                "hover:ring-2 hover:ring-ring",
+                "rounded-sm md:rounded-md"
               )}
               style={getHandStyle(hand)}
               onMouseDown={() => handleMouseDown(hand)}
               onMouseEnter={() => handleMouseEnter(hand)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleMouseDown(hand);
+              }}
               disabled={readOnly}
             >
               {hand}
