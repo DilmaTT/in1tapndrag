@@ -65,15 +65,21 @@ const Index = () => {
       {!isMobileLayout ? (
         // Desktop Layout
         <>
-          <div className="p-4 border-b bg-card">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <Navigation 
-                activeSection={activeSection} 
-                onSectionChange={setActiveSection} 
-              />
-              <div className="flex items-center gap-2">
-                {LayoutToggleButton}
-                <UserMenu isMobileMode={isMobileLayout} />
+          <div className="py-1 border-b bg-card">
+            <div className="flex items-center"> {/* Main header flex container */}
+              {/* Left section: aligns with sidebar content */}
+              <div className="w-80 flex-shrink-0 pl-4"> {/* w-80 for sidebar width, pl-4 for content alignment */}
+                <Navigation
+                  activeSection={activeSection}
+                  onSectionChange={setActiveSection}
+                />
+              </div>
+              {/* Right section: takes remaining space, aligns user menu to right */}
+              <div className="flex-1 flex items-center justify-end pr-4"> {/* pr-4 for consistent right padding */}
+                <div className="flex items-center gap-2">
+                  {LayoutToggleButton}
+                  <UserMenu isMobileMode={isMobileLayout} />
+                </div>
               </div>
             </div>
           </div>
@@ -84,8 +90,8 @@ const Index = () => {
         <div className="min-h-screen bg-background flex flex-col">
           <div className="px-4 border-b bg-card">
             <div className="flex items-center justify-between">
-              <Navigation 
-                activeSection={activeSection} 
+              <Navigation
+                activeSection={activeSection}
                 onSectionChange={setActiveSection}
                 isMobile={true}
                 mobileActions={mobileHeaderActions}
